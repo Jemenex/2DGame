@@ -5,16 +5,18 @@ import (
 	"image/color"
 	_ "image/png" //image functions import
 
-	//needed for color fill
+
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil" //needed for Hello World screen print
 )
 
+
 var windowWidth, windowHeight int = 1000, 800
 
 var box *ebiten.Image
+
 var img *ebiten.Image //variable declared for pointer image
 
 func init() { //init function grabbing image from directory
@@ -65,16 +67,20 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	// Display the information with "X: xx, Y: xx" format
+	// Capture Mouse Position in variables
 	x, y := ebiten.CursorPosition()
+	// Display Mouse Position
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("X: %d, Y: %d", x, y))
+
 	npc := &ebiten.DrawImageOptions{}
 	npc.ColorM.ChangeHSV(2.85, 2.00, 1.00)
 	npc.GeoM.Scale(-1, 1)
+
 	npc.GeoM.Translate(950, 50)
 
 	char := &ebiten.DrawImageOptions{}
 	char.GeoM.Translate(50, 50)
+
 
 	b := &ebiten.DrawImageOptions{}
 	b.GeoM.Translate(float64(windowWidth)*1/20, float64(windowHeight)/2)
@@ -85,6 +91,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(box, b)
 	screen.DrawImage(img, char)
 	screen.DrawImage(img, npc)
+
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -95,6 +102,7 @@ func main() {
 
 	ebiten.SetWindowSize(windowWidth, windowHeight)
 	ebiten.SetWindowTitle("2D Game")
+
 
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
