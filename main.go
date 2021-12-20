@@ -21,7 +21,13 @@ var spell4 = Action{"Scratch", 2, 2}
 var player Entity
 var enemy Entity
 
-var healthBar *ebiten.Image
+var healthBarGreenE *ebiten.Image
+var healthBarGreenP *ebiten.Image
+var healthBarRed *ebiten.Image
+
+var PlayerDead bool = false
+var EnemyDead bool = false
+
 var box *ebiten.Image
 var img *ebiten.Image //variable declared for pointer image
 
@@ -31,18 +37,28 @@ func init() { //init function grabbing image from directory
 
 	player.Name = "Blue Gopher"
 	player.Actions = [2]Action{spell1, spell2}
-	player.Health = 25
+	player.Health = [2]int{25, 25}
 	player.Image = *img
 	var x, y = player.Image.Size()
 	player.Size = [2]int{x, y}
-	player.Position = [2]int{50, 200}
+	player.Position = [2]int{windowWidth * 1 / 20, windowHeight * 2 / 10}
 
 	enemy.Name = "Red Gopher"
 	enemy.Actions = [2]Action{spell3, spell4}
-	enemy.Health = 10
+	enemy.Health = [2]int{10, 10}
 	enemy.Image = *img
 	enemy.Size = [2]int{x, y}
-	enemy.Position = [2]int{1230, 200}
+	enemy.Position = [2]int{windowWidth * 19 / 20, windowHeight * 2 / 10}
+
+	fmt.Println("-Player Position-")
+	fmt.Println(player.Position)
+	fmt.Println("-Player Size-")
+	fmt.Println(player.Size)
+	fmt.Println("-Enemy Position-")
+	fmt.Println(enemy.Position)
+	fmt.Println("-Enemy Size-")
+	fmt.Println(enemy.Size)
+	fmt.Println(img.Bounds())
 
 	if err != nil {
 		log.Fatal(err)
@@ -59,15 +75,26 @@ type Entity struct {
 	Name     string
 	Position [2]int
 	Size     [2]int
-	Health   int
+	Health   [2]int
 	Actions  [2]Action
 	Image    ebiten.Image
 }
 
-type Game struct{}
+type Game struct {
+}
 
 func (g *Game) Update() error {
-
+	if ebiten.IsKeyPressed(ebiten.KeyUp) && player.Health[0] > 1 {
+		player.Health[0] -= 1
+	} else if ebiten.IsKeyPressed(ebiten.KeyUp) && player.Health[0] == 1 {
+		PlayerDead = true
+	}
+	if ebiten.IsKeyPressed(ebiten.KeyDown) && enemy.Health[0] > 1 {
+		enemy.Health[0] -= 1
+	} else if ebiten.IsKeyPressed(ebiten.KeyDown) && enemy.Health[0] == 1 {
+		EnemyDead = true
+	}
+	//fmt.Println(player.Health)
 	return nil
 }
 
@@ -80,7 +107,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	npc := &ebiten.DrawImageOptions{}
 	npc.ColorM.ChangeHSV(2.85, 2.00, 1.00)
 	npc.GeoM.Scale(-1.5, 1.5)
-
 	npc.GeoM.Translate(float64(enemy.Position[0]), float64(enemy.Position[1]))
 
 	//fmt.Println(npc.GeoM)
@@ -95,13 +121,27 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	box.Fill(color.RGBA{0xb0, 0xb0, 0xb0, 0x2f})
 	//box = ebiten.NewImage(50, 50)
 
-	hp := &ebiten.DrawImageOptions{}
-	hp.GeoM.Translate(float64(enemy.Position[0]), float64(enemy.Position[1]+100))
-	//hp.GeoM.Translate(float64(enemy.Position[0]+enemy.Size[0]/2), float64(enemy.Position[1]+enemy.Size[1]+100))
-	healthBar = ebiten.NewImage(200, 40)
-	healthBar.Fill(color.RGBA{0xb0, 0xb0, 0xb0, 0x4f})
+	hpEnemy := &ebiten.DrawImageOptions{}
+	hpEnemy.GeoM.Translate(float64(enemy.Position[0]-enemy.Size[0]*3/2+30), float64(enemy.Position[1]-40))
+	hpPlayer := &ebiten.DrawImageOptions{}
+	hpPlayer.GeoM.Translate(float64(player.Position[0]+30), float64(player.Position[1]-40))
+	healthBarGreenP = ebiten.NewImage(300*player.Health[0]/player.Health[1], 30)
+	healthBarGreenP.Fill(color.RGBA{0x00, 0xff, 0x00, 0xff})
+	fmt.Println(player.Health)
+	healthBarGreenE = ebiten.NewImage(300*enemy.Health[0]/enemy.Health[1], 30)
+	healthBarGreenE.Fill(color.RGBA{0x00, 0xff, 0x00, 0xff})
 
-	screen.DrawImage(healthBar, hp)
+	healthBarRed = ebiten.NewImage(300, 30)
+	healthBarRed.Fill(color.RGBA{0xff, 0x00, 0x00, 0xff})
+
+	screen.DrawImage(healthBarRed, hpEnemy)
+	if !EnemyDead {
+		screen.DrawImage(healthBarGreenE, hpEnemy)
+	}
+	screen.DrawImage(healthBarRed, hpPlayer)
+	if !PlayerDead {
+		screen.DrawImage(healthBarGreenP, hpPlayer)
+	}
 	screen.DrawImage(box, b)
 	screen.DrawImage(img, char)
 	screen.DrawImage(img, npc)
