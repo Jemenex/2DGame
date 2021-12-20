@@ -5,39 +5,44 @@ import (
 	"image/color"
 	_ "image/png" //image functions import
 
-
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil" //needed for Hello World screen print
 )
 
+var windowWidth, windowHeight int = 1280, 960
 
-var windowWidth, windowHeight int = 1000, 800
+var spell1 = Action{"Basic Attack", 2, 0}
+var spell2 = Action{"Heavy Attack", 4, 2}
+var spell3 = Action{"Bite", 1, 0}
+var spell4 = Action{"Scratch", 2, 2}
 
+var player Entity
+var enemy Entity
+
+var healthBar *ebiten.Image
 var box *ebiten.Image
-
 var img *ebiten.Image //variable declared for pointer image
 
 func init() { //init function grabbing image from directory
 	var err error
 	img, _, err = ebitenutil.NewImageFromFile("gopher.png")
 
-	spell1 := Action{"Basic Attack", 2, 0}
-	spell2 := Action{"Heavy Attack", 4, 2}
-
-	player := new(Entity)
 	player.Name = "Blue Gopher"
 	player.Actions = [2]Action{spell1, spell2}
-	player.Health = 100
+	player.Health = 25
 	player.Image = *img
-	//player.Size = [2]int player.Image.Size()
+	var x, y = player.Image.Size()
+	player.Size = [2]int{x, y}
+	player.Position = [2]int{50, 200}
 
-	fmt.Println(player)
-	fmt.Println(player.Image.Size())
-
-	enemy := new(Entity)
 	enemy.Name = "Red Gopher"
+	enemy.Actions = [2]Action{spell3, spell4}
+	enemy.Health = 10
+	enemy.Image = *img
+	enemy.Size = [2]int{x, y}
+	enemy.Position = [2]int{1230, 200}
 
 	if err != nil {
 		log.Fatal(err)
@@ -74,20 +79,29 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	npc := &ebiten.DrawImageOptions{}
 	npc.ColorM.ChangeHSV(2.85, 2.00, 1.00)
-	npc.GeoM.Scale(-1, 1)
+	npc.GeoM.Scale(-1.5, 1.5)
 
-	npc.GeoM.Translate(950, 50)
+	npc.GeoM.Translate(float64(enemy.Position[0]), float64(enemy.Position[1]))
+
+	//fmt.Println(npc.GeoM)
 
 	char := &ebiten.DrawImageOptions{}
-	char.GeoM.Translate(50, 50)
-
+	char.GeoM.Scale(1.5, 1.5)
+	char.GeoM.Translate(float64(player.Position[0]), float64(player.Position[1]))
 
 	b := &ebiten.DrawImageOptions{}
-	b.GeoM.Translate(float64(windowWidth)*1/20, float64(windowHeight)/2)
-	box = ebiten.NewImage(windowWidth*9/10, windowHeight*9/20)
-	//box = ebiten.NewImage(50, 50)
+	b.GeoM.Translate(float64(windowWidth)*2/20, float64(windowHeight)*15/20)
+	box = ebiten.NewImage(windowWidth*16/20, windowHeight*3/20)
 	box.Fill(color.RGBA{0xb0, 0xb0, 0xb0, 0x2f})
+	//box = ebiten.NewImage(50, 50)
 
+	hp := &ebiten.DrawImageOptions{}
+	hp.GeoM.Translate(float64(enemy.Position[0]), float64(enemy.Position[1]+100))
+	//hp.GeoM.Translate(float64(enemy.Position[0]+enemy.Size[0]/2), float64(enemy.Position[1]+enemy.Size[1]+100))
+	healthBar = ebiten.NewImage(200, 40)
+	healthBar.Fill(color.RGBA{0xb0, 0xb0, 0xb0, 0x4f})
+
+	screen.DrawImage(healthBar, hp)
 	screen.DrawImage(box, b)
 	screen.DrawImage(img, char)
 	screen.DrawImage(img, npc)
@@ -102,7 +116,6 @@ func main() {
 
 	ebiten.SetWindowSize(windowWidth, windowHeight)
 	ebiten.SetWindowTitle("2D Game")
-
 
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
