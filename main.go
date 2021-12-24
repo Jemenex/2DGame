@@ -22,11 +22,11 @@ var windowWidth, windowHeight int = 1280, 960
 var spell1 = Action{"Basic Attack", 2, 0, "damage"}
 var spell2 = Action{"Heavy Attack", 4, 2, "damage"}
 var spell3 = Action{"Drink Potion", 6, 4, "heal"}
-var spell4 = Action{"Defense Up", 1, 4, "buff"}
+var spell4 = Action{"Defense Up", 1, 4, "defenseBuff"}
 var spell5 = Action{"Bite", 1, 0, "damage"}
 var spell6 = Action{"Scratch", 2, 2, "damage"}
-var spell7 = Action{"Enrage", 1, 4, "buff"}
-var spell8 = Action{"Block", 1, 3, "buff"}
+var spell7 = Action{"Enrage", 1, 4, "attackBuff"}
+var spell8 = Action{"Block", 1, 3, "defenseBuff"}
 
 var player Entity
 var enemy Entity
@@ -44,7 +44,7 @@ var box *ebiten.Image
 var arrow *ebiten.Image
 var img *ebiten.Image //variable declared for pointer image
 
-var arrowPos = [2]int{11, 12}
+var arrowPos = [2]int{0, 0}
 var (
 	mplusNormalFont font.Face
 	mplusBigFont    font.Face
@@ -59,7 +59,10 @@ func init() { //init function grabbing image from directory
 
 	player.Name = "Blue Gopher"
 	player.Actions = [4]Action{spell1, spell2, spell3, spell4}
-	player.Health = [2]int{25, 25}
+	player.Stats.maxHealth = 25
+	player.Stats.currentHealth = 25
+	player.Stats.attack = 0
+	player.Stats.defense = 0
 	player.Image = *img
 	var x, y = player.Image.Size()
 	player.Size = [2]int{x, y}
@@ -67,21 +70,13 @@ func init() { //init function grabbing image from directory
 
 	enemy.Name = "Red Gopher"
 	enemy.Actions = [4]Action{spell5, spell6, spell7, spell8}
-	enemy.Health = [2]int{10, 10}
+	enemy.Stats.maxHealth = 25
+	enemy.Stats.currentHealth = 25
+	enemy.Stats.attack = 0
+	enemy.Stats.defense = 0
 	enemy.Image = *img
 	enemy.Size = [2]int{x, y}
 	enemy.Position = [2]int{windowWidth * 19 / 20, windowHeight * 2 / 10}
-
-	/*
-		fmt.Println("-Player Position-")
-		fmt.Println(player.Position)
-		fmt.Println("-Player Size-")
-		fmt.Println(player.Size)
-		fmt.Println("-Enemy Position-")
-		fmt.Println(enemy.Position)
-		fmt.Println("-Enemy Size-")
-		fmt.Println(enemy.Size)
-		fmt.Println(img.Bounds())*/
 
 	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
 	if err != nil {
@@ -119,9 +114,31 @@ type Entity struct {
 	Name     string
 	Position [2]int
 	Size     [2]int
-	Health   [2]int //{Current Health, Total Health}
-	Actions  [4]Action
-	Image    ebiten.Image
+	Stats    struct {
+		maxHealth     int
+		currentHealth int
+		attack        int
+		defense       int
+	}
+	Actions [4]Action
+	Image   ebiten.Image
+}
+
+func ActionEffects(first Entity, second Entity, spell Action) {
+
+	if spell.Effect == "damage" {
+		fmt.Println(second.Stats.currentHealth - spell.HealthModifier)
+		fmt.Println("damage done!")
+	} else if spell.Effect == "heal" {
+		first.Stats.currentHealth += spell.HealthModifier
+		fmt.Println("heal done!")
+	} else if spell.Effect == "attackBuff" {
+		first.Stats.attack += spell.HealthModifier
+		fmt.Println("attack buff done!")
+	} else if spell.Effect == "defenseBuff" {
+		first.Stats.defense += spell.HealthModifier
+		fmt.Println("defense buff done!")
+	}
 }
 
 type Game struct {
@@ -152,14 +169,23 @@ func (g *Game) Update() error {
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
 		if arrowPos == [2]int{0, 0} {
-			enemy.Health[0] -= player.Actions[0].HealthModifier
+			ActionEffects(player, enemy, player.Actions[0])
+			fmt.Println("first spell used")
+			fmt.Println(enemy.Stats.currentHealth)
 		} else if arrowPos == [2]int{11, 0} {
-			enemy.Health[0] -= player.Actions[1].HealthModifier
+			ActionEffects(player, enemy, player.Actions[1])
+			fmt.Println("second spell used")
+			fmt.Println(enemy.Stats.currentHealth)
 		} else if arrowPos == [2]int{0, 12} {
-			enemy.Health[0] -= player.Actions[2].HealthModifier
+			ActionEffects(player, enemy, player.Actions[2])
+			fmt.Println("third spell used")
 		} else if arrowPos == [2]int{11, 12} {
-			enemy.Health[0] -= player.Actions[3].HealthModifier
+			ActionEffects(player, enemy, player.Actions[3])
+			fmt.Println("fourth spell used")
 		}
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+		enemy.Stats.currentHealth -= player.Actions[0].HealthModifier
 	}
 	return nil
 }
@@ -196,10 +222,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	hpEnemy.GeoM.Translate(float64(enemy.Position[0]-enemy.Size[0]*3/2+30), float64(enemy.Position[1]-40))
 	hpPlayer := &ebiten.DrawImageOptions{}
 	hpPlayer.GeoM.Translate(float64(player.Position[0]+30), float64(player.Position[1]-40))
-	healthBarGreenP = ebiten.NewImage(300*player.Health[0]/player.Health[1], 30)
+	healthBarGreenP = ebiten.NewImage(300*player.Stats.currentHealth/player.Stats.maxHealth, 30)
 	healthBarGreenP.Fill(color.RGBA{0x00, 0xff, 0x00, 0xff})
 	//fmt.Println(player.Health)
-	healthBarGreenE = ebiten.NewImage(300*enemy.Health[0]/enemy.Health[1], 30)
+	healthBarGreenE = ebiten.NewImage(300*enemy.Stats.currentHealth/enemy.Stats.maxHealth, 30)
 	healthBarGreenE.Fill(color.RGBA{0x00, 0xff, 0x00, 0xff})
 
 	healthBarRed = ebiten.NewImage(300, 30)
