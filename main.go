@@ -124,21 +124,9 @@ type Entity struct {
 	Image   ebiten.Image
 }
 
-func ActionEffects(first Entity, second Entity, spell Action) {
+func ActionEffects(first Entity, second Entity, spell Action) (Entity, Entity) {
 
-	if spell.Effect == "damage" {
-		fmt.Println(second.Stats.currentHealth - spell.HealthModifier)
-		fmt.Println("damage done!")
-	} else if spell.Effect == "heal" {
-		first.Stats.currentHealth += spell.HealthModifier
-		fmt.Println("heal done!")
-	} else if spell.Effect == "attackBuff" {
-		first.Stats.attack += spell.HealthModifier
-		fmt.Println("attack buff done!")
-	} else if spell.Effect == "defenseBuff" {
-		first.Stats.defense += spell.HealthModifier
-		fmt.Println("defense buff done!")
-	}
+	return first, second
 }
 
 type Game struct {
@@ -169,23 +157,82 @@ func (g *Game) Update() error {
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
 		if arrowPos == [2]int{0, 0} {
-			ActionEffects(player, enemy, player.Actions[0])
-			fmt.Println("first spell used")
-			fmt.Println(enemy.Stats.currentHealth)
+			//player, enemy = ActionEffects(player, enemy, player.Actions[0])
+			if player.Actions[0].Effect == "damage" {
+				enemy.Stats.currentHealth -= player.Actions[0].HealthModifier + player.Stats.attack - enemy.Stats.defense
+				fmt.Println(enemy.Stats.currentHealth - player.Actions[0].HealthModifier)
+				fmt.Println("damage done!")
+			} else if player.Actions[0].Effect == "heal" {
+				player.Stats.currentHealth += player.Actions[0].HealthModifier
+				if player.Stats.currentHealth > player.Stats.maxHealth {
+					player.Stats.currentHealth = player.Stats.maxHealth
+				}
+				fmt.Println("heal done!")
+			} else if player.Actions[0].Effect == "attackBuff" {
+				player.Stats.attack += player.Actions[0].HealthModifier
+				fmt.Println("attack buff done!")
+			} else if player.Actions[0].Effect == "defenseBuff" {
+				player.Stats.defense += player.Actions[0].HealthModifier
+				fmt.Println("defense buff done!")
+			}
 		} else if arrowPos == [2]int{11, 0} {
-			ActionEffects(player, enemy, player.Actions[1])
-			fmt.Println("second spell used")
-			fmt.Println(enemy.Stats.currentHealth)
+			if player.Actions[1].Effect == "damage" {
+				enemy.Stats.currentHealth -= player.Actions[1].HealthModifier + player.Stats.attack - enemy.Stats.defense
+				fmt.Println(enemy.Stats.currentHealth - player.Actions[1].HealthModifier)
+				fmt.Println("damage done!")
+			} else if player.Actions[1].Effect == "heal" {
+				player.Stats.currentHealth += player.Actions[1].HealthModifier
+				if player.Stats.currentHealth > player.Stats.maxHealth {
+					player.Stats.currentHealth = player.Stats.maxHealth
+				}
+				fmt.Println("heal done!")
+			} else if player.Actions[1].Effect == "attackBuff" {
+				player.Stats.attack += player.Actions[1].HealthModifier
+				fmt.Println("attack buff done!")
+			} else if player.Actions[1].Effect == "defenseBuff" {
+				player.Stats.defense += player.Actions[1].HealthModifier
+				fmt.Println("defense buff done!")
+			}
 		} else if arrowPos == [2]int{0, 12} {
-			ActionEffects(player, enemy, player.Actions[2])
-			fmt.Println("third spell used")
+			if player.Actions[2].Effect == "damage" {
+				enemy.Stats.currentHealth -= player.Actions[2].HealthModifier + player.Stats.attack - enemy.Stats.defense
+				fmt.Println(enemy.Stats.currentHealth - player.Actions[2].HealthModifier)
+				fmt.Println("damage done!")
+			} else if player.Actions[2].Effect == "heal" {
+				player.Stats.currentHealth += player.Actions[2].HealthModifier
+				if player.Stats.currentHealth > player.Stats.maxHealth {
+					player.Stats.currentHealth = player.Stats.maxHealth
+				}
+				fmt.Println("heal done!")
+			} else if player.Actions[2].Effect == "attackBuff" {
+				player.Stats.attack += player.Actions[2].HealthModifier
+				fmt.Println("attack buff done!")
+			} else if player.Actions[2].Effect == "defenseBuff" {
+				player.Stats.defense += player.Actions[2].HealthModifier
+				fmt.Println("defense buff done!")
+			}
 		} else if arrowPos == [2]int{11, 12} {
-			ActionEffects(player, enemy, player.Actions[3])
-			fmt.Println("fourth spell used")
+			if player.Actions[3].Effect == "damage" {
+				enemy.Stats.currentHealth -= player.Actions[3].HealthModifier + player.Stats.attack - enemy.Stats.defense
+				fmt.Println(enemy.Stats.currentHealth - player.Actions[3].HealthModifier)
+				fmt.Println("damage done!")
+			} else if player.Actions[3].Effect == "heal" {
+				player.Stats.currentHealth += player.Actions[3].HealthModifier
+				if player.Stats.currentHealth > player.Stats.maxHealth {
+					player.Stats.currentHealth = player.Stats.maxHealth
+				}
+				fmt.Println("heal done!")
+			} else if player.Actions[3].Effect == "attackBuff" {
+				player.Stats.attack += player.Actions[3].HealthModifier
+				fmt.Println("attack buff done!")
+			} else if player.Actions[3].Effect == "defenseBuff" {
+				player.Stats.defense += player.Actions[3].HealthModifier
+				fmt.Println("defense buff done!")
+			}
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		enemy.Stats.currentHealth -= player.Actions[0].HealthModifier
+		player.Stats.currentHealth -= 2
 	}
 	return nil
 }
