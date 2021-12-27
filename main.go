@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"image/color"
 	_ "image/png" //image functions import
+	"math/rand"
+	"time"
 
 	"log"
 
@@ -27,6 +29,8 @@ var spell5 = Action{"Bite", 1, 0, "damage"}
 var spell6 = Action{"Scratch", 2, 2, "damage"}
 var spell7 = Action{"Enrage", 1, 4, "attackBuff"}
 var spell8 = Action{"Block", 1, 3, "defenseBuff"}
+
+var DurationOfTime = time.Duration(3) * time.Second
 
 var player Entity
 var enemy Entity
@@ -124,9 +128,55 @@ type Entity struct {
 	Image   ebiten.Image
 }
 
-func ActionEffects(first Entity, second Entity, spell Action) (Entity, Entity) {
+func ActionEffects(first Entity, second Entity, spell Action) (struct {
+	maxHealth     int
+	currentHealth int
+	attack        int
+	defense       int
+}, struct {
+	maxHealth     int
+	currentHealth int
+	attack        int
+	defense       int
+}) {
+	if spell.Effect == "damage" {
+		second.Stats.currentHealth -= spell.HealthModifier + first.Stats.attack - first.Stats.defense
+		fmt.Println(first.Name)
+		fmt.Println("used Damage spell")
+	} else if spell.Effect == "heal" {
+		first.Stats.currentHealth += spell.HealthModifier
+		if first.Stats.currentHealth > first.Stats.maxHealth {
+			first.Stats.currentHealth = first.Stats.maxHealth
+		}
+		fmt.Println(first.Name)
+		fmt.Println("used heal spell")
+	} else if spell.Effect == "attackBuff" {
+		first.Stats.attack += spell.HealthModifier
+		fmt.Println(first.Name)
+		fmt.Println("used attack buff spell")
+	} else if spell.Effect == "defenseBuff" {
+		first.Stats.defense += spell.HealthModifier
+		fmt.Println(first.Name)
+		fmt.Println("used defense buff spell")
+	}
 
-	return first, second
+	return first.Stats, second.Stats
+}
+
+func EnemyTurn(first Entity, second Entity, spell Action) (struct {
+	maxHealth     int
+	currentHealth int
+	attack        int
+	defense       int
+}, struct {
+	maxHealth     int
+	currentHealth int
+	attack        int
+	defense       int
+}) {
+
+	ActionEffects(enemy, player, enemy.Actions[rand.Intn(4)])
+	return first.Stats, second.Stats
 }
 
 type Game struct {
@@ -157,82 +207,22 @@ func (g *Game) Update() error {
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
 		if arrowPos == [2]int{0, 0} {
-			//player, enemy = ActionEffects(player, enemy, player.Actions[0])
-			if player.Actions[0].Effect == "damage" {
-				enemy.Stats.currentHealth -= player.Actions[0].HealthModifier + player.Stats.attack - enemy.Stats.defense
-				fmt.Println(enemy.Stats.currentHealth - player.Actions[0].HealthModifier)
-				fmt.Println("damage done!")
-			} else if player.Actions[0].Effect == "heal" {
-				player.Stats.currentHealth += player.Actions[0].HealthModifier
-				if player.Stats.currentHealth > player.Stats.maxHealth {
-					player.Stats.currentHealth = player.Stats.maxHealth
-				}
-				fmt.Println("heal done!")
-			} else if player.Actions[0].Effect == "attackBuff" {
-				player.Stats.attack += player.Actions[0].HealthModifier
-				fmt.Println("attack buff done!")
-			} else if player.Actions[0].Effect == "defenseBuff" {
-				player.Stats.defense += player.Actions[0].HealthModifier
-				fmt.Println("defense buff done!")
-			}
+			player.Stats, enemy.Stats = ActionEffects(player, enemy, player.Actions[0])
+			turnText = "Enemy's Turn"
+			time.AfterFunc(DurationOfTime, func() {
+				enemy.Stats, player.Stats = ActionEffects(enemy, player, enemy.Actions[0])
+				turnText = "Your Turn"
+			})
 		} else if arrowPos == [2]int{11, 0} {
-			if player.Actions[1].Effect == "damage" {
-				enemy.Stats.currentHealth -= player.Actions[1].HealthModifier + player.Stats.attack - enemy.Stats.defense
-				fmt.Println(enemy.Stats.currentHealth - player.Actions[1].HealthModifier)
-				fmt.Println("damage done!")
-			} else if player.Actions[1].Effect == "heal" {
-				player.Stats.currentHealth += player.Actions[1].HealthModifier
-				if player.Stats.currentHealth > player.Stats.maxHealth {
-					player.Stats.currentHealth = player.Stats.maxHealth
-				}
-				fmt.Println("heal done!")
-			} else if player.Actions[1].Effect == "attackBuff" {
-				player.Stats.attack += player.Actions[1].HealthModifier
-				fmt.Println("attack buff done!")
-			} else if player.Actions[1].Effect == "defenseBuff" {
-				player.Stats.defense += player.Actions[1].HealthModifier
-				fmt.Println("defense buff done!")
-			}
+			player.Stats, enemy.Stats = ActionEffects(player, enemy, player.Actions[1])
 		} else if arrowPos == [2]int{0, 12} {
-			if player.Actions[2].Effect == "damage" {
-				enemy.Stats.currentHealth -= player.Actions[2].HealthModifier + player.Stats.attack - enemy.Stats.defense
-				fmt.Println(enemy.Stats.currentHealth - player.Actions[2].HealthModifier)
-				fmt.Println("damage done!")
-			} else if player.Actions[2].Effect == "heal" {
-				player.Stats.currentHealth += player.Actions[2].HealthModifier
-				if player.Stats.currentHealth > player.Stats.maxHealth {
-					player.Stats.currentHealth = player.Stats.maxHealth
-				}
-				fmt.Println("heal done!")
-			} else if player.Actions[2].Effect == "attackBuff" {
-				player.Stats.attack += player.Actions[2].HealthModifier
-				fmt.Println("attack buff done!")
-			} else if player.Actions[2].Effect == "defenseBuff" {
-				player.Stats.defense += player.Actions[2].HealthModifier
-				fmt.Println("defense buff done!")
-			}
+			player.Stats, enemy.Stats = ActionEffects(player, enemy, player.Actions[2])
 		} else if arrowPos == [2]int{11, 12} {
-			if player.Actions[3].Effect == "damage" {
-				enemy.Stats.currentHealth -= player.Actions[3].HealthModifier + player.Stats.attack - enemy.Stats.defense
-				fmt.Println(enemy.Stats.currentHealth - player.Actions[3].HealthModifier)
-				fmt.Println("damage done!")
-			} else if player.Actions[3].Effect == "heal" {
-				player.Stats.currentHealth += player.Actions[3].HealthModifier
-				if player.Stats.currentHealth > player.Stats.maxHealth {
-					player.Stats.currentHealth = player.Stats.maxHealth
-				}
-				fmt.Println("heal done!")
-			} else if player.Actions[3].Effect == "attackBuff" {
-				player.Stats.attack += player.Actions[3].HealthModifier
-				fmt.Println("attack buff done!")
-			} else if player.Actions[3].Effect == "defenseBuff" {
-				player.Stats.defense += player.Actions[3].HealthModifier
-				fmt.Println("defense buff done!")
-			}
+			player.Stats, enemy.Stats = ActionEffects(player, enemy, player.Actions[3])
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		player.Stats.currentHealth -= 2
+		player.Stats.currentHealth -= 1
 	}
 	return nil
 }
@@ -314,13 +304,3 @@ func main() {
 	}
 }
 
-/*
-SPELLS OPTIONS AND SELECTION
-	DRAW TEXT -DONE
-	POSITION TEXT - DONE
-	DRAW SELECTOR - DONE
-	ATTACH VARIABLE WITH VALUE FOR POSITION  0,0  0,1 1,0 1,1 -DONE
-	ATTACH VARIABLE CHANGE TO KEY PRESS DIRECTIONALLY - DONE
-ENEMY TURN
-BATTLE LOOP
-*/
