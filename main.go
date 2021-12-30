@@ -21,14 +21,14 @@ import (
 
 var windowWidth, windowHeight int = 1280, 960
 
-var spell1 = Action{"Basic Attack", 2, 0, "damage"}
-var spell2 = Action{"Heavy Attack", 4, 2, "damage"}
-var spell3 = Action{"Drink Potion", 6, 4, "heal"}
-var spell4 = Action{"Defense Up", 1, 4, "defenseBuff"}
-var spell5 = Action{"Bite", 1, 0, "damage"}
-var spell6 = Action{"Scratch", 2, 2, "damage"}
-var spell7 = Action{"Enrage", 1, 4, "attackBuff"}
-var spell8 = Action{"Block", 1, 3, "defenseBuff"}
+var spell1 = Action{"Basic Attack", 2, [2]int{0, 0}, "damage"}
+var spell2 = Action{"Heavy Attack", 4, [2]int{1, 0}, "damage"}
+var spell3 = Action{"Drink Potion", 3, [2]int{2, 0}, "heal"}
+var spell4 = Action{"Attack Up", 1, [2]int{2, 0}, "attackBuff"}
+var spell5 = Action{"Bite", 1, [2]int{0, 0}, "damage"}
+var spell6 = Action{"Scratch", 2, [2]int{1, 0}, "damage"}
+var spell7 = Action{"Enrage", 1, [2]int{2, 0}, "attackBuff"}
+var spell8 = Action{"Block", 1, [2]int{2, 0}, "defenseBuff"}
 
 var DurationOfTime = time.Duration(3) * time.Second
 
@@ -36,13 +36,15 @@ var player Entity
 var enemy Entity
 
 var turnText string = "Battle Starts!"
+var turn int = 0
 
 var healthBarGreenE *ebiten.Image
 var healthBarGreenP *ebiten.Image
 var healthBarRed *ebiten.Image
 
-var PlayerDead bool = false
-var EnemyDead bool = false
+var playerTurn bool = true
+var playerDead bool = false
+var enemyDead bool = false
 
 var box *ebiten.Image
 var arrow *ebiten.Image
@@ -110,7 +112,7 @@ func init() { //init function grabbing image from directory
 type Action struct {
 	Name           string
 	HealthModifier int //How much it modifies health + or -
-	CoolDown       int
+	CoolDown       [2]int
 	Effect         string
 }
 
@@ -138,45 +140,61 @@ func ActionEffects(first Entity, second Entity, spell Action) (struct {
 	currentHealth int
 	attack        int
 	defense       int
-}) {
+}, [4]Action,
+	bool) {
+	for i := 0; i < len(first.Actions); i++ {
+		if first.Actions[i].CoolDown[1] < turn {
+			if first.Actions[i] == spell {
+				if spell.Effect == "attackBuff" {
+					first.Stats.attack = 0
+				} else if spell.Effect == "defenseBuff" {
+					first.Stats.defense = 0
+				}
+				first.Actions[i].CoolDown[1] += spell.CoolDown[0]
+				fmt.Println("cooldown increased")
+			}
+			first.Actions[i].CoolDown[1] += 1
+		}
+		if first.Actions[i].CoolDown[1] == turn {
+			if first.Actions[i].Effect == "attackBuff" && first.Stats.attack > 0 {
+				first.Stats.attack = 0
+				fmt.Println("attack buff wore off")
+				fmt.Println("player attack", first.Stats.attack)
+			} else if first.Actions[i].Effect == "defenseBuff" && first.Stats.defense > 0 {
+				first.Stats.defense = 0
+				fmt.Println("defense buff wore off")
+				fmt.Println("player defense", first.Stats.defense)
+			}
+		}
+	}
+	var dead bool = false
 	if spell.Effect == "damage" {
-		second.Stats.currentHealth -= spell.HealthModifier + first.Stats.attack - first.Stats.defense
-		fmt.Println(first.Name)
-		fmt.Println("used Damage spell")
+		second.Stats.currentHealth -= (spell.HealthModifier + first.Stats.attack - second.Stats.defense)
+		spell.CoolDown[1] += spell.CoolDown[0]
+		if first.Stats.currentHealth < 1 {
+			first.Stats.currentHealth = 0
+			dead = true
+		}
+		//fmt.Println(first.Name)
+		//fmt.Println("used Damage spell")
 	} else if spell.Effect == "heal" {
 		first.Stats.currentHealth += spell.HealthModifier
 		if first.Stats.currentHealth > first.Stats.maxHealth {
 			first.Stats.currentHealth = first.Stats.maxHealth
 		}
-		fmt.Println(first.Name)
-		fmt.Println("used heal spell")
+		//fmt.Println(first.Name)
+		//fmt.Println("used heal spell")
 	} else if spell.Effect == "attackBuff" {
 		first.Stats.attack += spell.HealthModifier
-		fmt.Println(first.Name)
-		fmt.Println("used attack buff spell")
+		//fmt.Println(first.Name)
+		//fmt.Println("used attack buff spell")
 	} else if spell.Effect == "defenseBuff" {
 		first.Stats.defense += spell.HealthModifier
-		fmt.Println(first.Name)
-		fmt.Println("used defense buff spell")
+		//fmt.Println(first.Name)
+		//fmt.Println("used defense buff spell")
 	}
 
-	return first.Stats, second.Stats
-}
-
-func EnemyTurn(first Entity, second Entity, spell Action) (struct {
-	maxHealth     int
-	currentHealth int
-	attack        int
-	defense       int
-}, struct {
-	maxHealth     int
-	currentHealth int
-	attack        int
-	defense       int
-}) {
-
-	ActionEffects(enemy, player, enemy.Actions[rand.Intn(4)])
-	return first.Stats, second.Stats
+	return first.Stats, second.Stats, first.Actions, dead
 }
 
 type Game struct {
@@ -205,20 +223,91 @@ func (g *Game) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
 		arrowPos[0] = 11
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) && playerTurn {
 		if arrowPos == [2]int{0, 0} {
-			player.Stats, enemy.Stats = ActionEffects(player, enemy, player.Actions[0])
-			turnText = "Enemy's Turn"
-			time.AfterFunc(DurationOfTime, func() {
-				enemy.Stats, player.Stats = ActionEffects(enemy, player, enemy.Actions[0])
-				turnText = "Your Turn"
-			})
+			fmt.Println("current turn:", turn)
+			fmt.Println("current cd:", player.Actions[0].CoolDown[1])
+
+			if player.Actions[0].CoolDown[1] == turn {
+				playerTurn = false
+				turn += 1
+				player.Stats, enemy.Stats, player.Actions, enemyDead = ActionEffects(player, enemy, player.Actions[0])
+				turnText = "Enemy's Turn"
+				time.AfterFunc(DurationOfTime, func() {
+					var x int
+					for {
+						x = rand.Intn(4)
+						if (enemy.Actions[x].CoolDown[1] + 1) == turn {
+							break
+						}
+					}
+
+					enemy.Stats, player.Stats, enemy.Actions, playerDead = ActionEffects(enemy, player, enemy.Actions[x])
+					turnText = "Your Turn"
+					playerTurn = true
+					//fmt.Println(player.Stats)
+					//fmt.Println(enemy.Stats)
+				})
+			} else {
+				turnText = "That spell is on COOLDOWN!"
+			}
 		} else if arrowPos == [2]int{11, 0} {
-			player.Stats, enemy.Stats = ActionEffects(player, enemy, player.Actions[1])
+			fmt.Println("current turn:", turn)
+			fmt.Println("current cd:", player.Actions[1].CoolDown[1])
+			if player.Actions[1].CoolDown[1] == turn {
+				playerTurn = false
+				turn += 1
+				player.Stats, enemy.Stats, player.Actions, enemyDead = ActionEffects(player, enemy, player.Actions[1])
+				turnText = "Enemy's Turn"
+				time.AfterFunc(DurationOfTime, func() {
+					x := rand.Intn(4)
+					enemy.Stats, player.Stats, enemy.Actions, playerDead = ActionEffects(enemy, player, enemy.Actions[x])
+					turnText = "Your Turn"
+					playerTurn = true
+					//fmt.Println(player.Stats)
+					//fmt.Println(enemy.Stats)
+				})
+			} else {
+				turnText = "That spell is on COOLDOWN!"
+			}
 		} else if arrowPos == [2]int{0, 12} {
-			player.Stats, enemy.Stats = ActionEffects(player, enemy, player.Actions[2])
+			fmt.Println("current turn:", turn)
+			fmt.Println("current cd:", player.Actions[2].CoolDown[1])
+			if player.Actions[2].CoolDown[1] == turn {
+				playerTurn = false
+				turn += 1
+				player.Stats, enemy.Stats, player.Actions, enemyDead = ActionEffects(player, enemy, player.Actions[2])
+				turnText = "Enemy's Turn"
+				time.AfterFunc(DurationOfTime, func() {
+					x := rand.Intn(4)
+					enemy.Stats, player.Stats, enemy.Actions, playerDead = ActionEffects(enemy, player, enemy.Actions[x])
+					turnText = "Your Turn"
+					playerTurn = true
+					//fmt.Println(player.Stats)
+					//fmt.Println(enemy.Stats)
+				})
+			} else {
+				turnText = "That spell is on COOLDOWN!"
+			}
 		} else if arrowPos == [2]int{11, 12} {
-			player.Stats, enemy.Stats = ActionEffects(player, enemy, player.Actions[3])
+			fmt.Println("current turn:", turn)
+			fmt.Println("current cd:", player.Actions[3].CoolDown[1])
+			if player.Actions[3].CoolDown[1] == turn {
+				playerTurn = false
+				turn += 1
+				player.Stats, enemy.Stats, player.Actions, enemyDead = ActionEffects(player, enemy, player.Actions[3])
+				turnText = "Enemy's Turn"
+				time.AfterFunc(DurationOfTime, func() {
+					x := rand.Intn(4)
+					enemy.Stats, player.Stats, enemy.Actions, playerDead = ActionEffects(enemy, player, enemy.Actions[x])
+					turnText = "Your Turn"
+					playerTurn = true
+					//fmt.Println(player.Stats)
+					//fmt.Println(enemy.Stats)
+				})
+			} else {
+				turnText = "That spell is on COOLDOWN!"
+			}
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
@@ -269,11 +358,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	healthBarRed.Fill(color.RGBA{0xff, 0x00, 0x00, 0xff})
 
 	screen.DrawImage(healthBarRed, hpEnemy)
-	if !EnemyDead {
+	if !enemyDead {
 		screen.DrawImage(healthBarGreenE, hpEnemy)
 	}
 	screen.DrawImage(healthBarRed, hpPlayer)
-	if !PlayerDead {
+	if !playerDead {
 		screen.DrawImage(healthBarGreenP, hpPlayer)
 	}
 	screen.DrawImage(box, b)
@@ -281,10 +370,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	screen.DrawImage(img, char)
 	screen.DrawImage(img, npc)
 
-	text.Draw(screen, "first spell", mplusNormalFont, windowWidth*12/40, windowHeight*57/80, color.White)
-	text.Draw(screen, "second spell", mplusNormalFont, windowWidth*(12+11)/40, windowHeight*57/80, color.White)
-	text.Draw(screen, "third spell", mplusNormalFont, windowWidth*12/40, windowHeight*(57+12)/80, color.White)
-	text.Draw(screen, "fourth spell", mplusNormalFont, windowWidth*(12+11)/40, windowHeight*(57+12)/80, color.White)
+	text.Draw(screen, player.Actions[0].Name, mplusNormalFont, windowWidth*12/40, windowHeight*57/80, color.White)
+	text.Draw(screen, player.Actions[1].Name, mplusNormalFont, windowWidth*(12+11)/40, windowHeight*57/80, color.White)
+	text.Draw(screen, player.Actions[2].Name, mplusNormalFont, windowWidth*12/40, windowHeight*(57+12)/80, color.White)
+	text.Draw(screen, player.Actions[3].Name, mplusNormalFont, windowWidth*(12+11)/40, windowHeight*(57+12)/80, color.White)
 
 	text.Draw(screen, turnText, mplusBigFont, windowWidth*15/40, windowHeight*1/20, color.White)
 
@@ -303,4 +392,3 @@ func main() {
 		log.Fatal(err)
 	}
 }
-
