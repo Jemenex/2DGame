@@ -1,13 +1,15 @@
 package main
 
 import (
+	//"bytes"
+	//_ "embed"
 	"fmt"
+	//"image"
 	"image/color"
 	_ "image/png" //image functions import
+	"log"
 	"math/rand"
 	"time"
-
-	"log"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/opentype"
@@ -48,7 +50,20 @@ var enemyDead bool = false
 
 var box *ebiten.Image
 var arrow *ebiten.Image
-var img *ebiten.Image //variable declared for pointer image
+var background *ebiten.Image
+
+//var img *ebiten.Image //variable declared for pointer image
+var hero *ebiten.Image
+var bandit *ebiten.Image
+
+/*const (
+	iconSize = 32
+	tileXNum = 25
+)
+
+var (
+	iconsImage *ebiten.Image
+)*/
 
 var arrowPos = [2]int{0, 0}
 var (
@@ -58,21 +73,42 @@ var (
 
 func init() { //init function grabbing image from directory
 	var err error
-	img, _, err = ebitenutil.NewImageFromFile("gopher.png")
+	/*img, _, err = ebitenutil.NewImageFromFile("gopher.png")
+	if err != nil {
+		log.Fatal(err)
+	}*/
+
+	/*img, _, err := image.Decode(bytes.NewReader(images.Tiles_png))
+	if err != nil {
+		log.Fatal(err)
+	}
+	iconsImage = ebiten.NewImageFromImage(img)*/
+
+	background, _, err = ebitenutil.NewImageFromFile("background.png")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	player.Name = "Blue Gopher"
+	hero, _, err = ebitenutil.NewImageFromFile("hero.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	bandit, _, err = ebitenutil.NewImageFromFile("bandit.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	player.Name = "Hero Knight"
 	player.Actions = [4]Action{spell1, spell2, spell3, spell4}
 	player.Stats.maxHealth = 25
 	player.Stats.currentHealth = 25
 	player.Stats.attack = 0
 	player.Stats.defense = 0
-	player.Image = *img
+	player.Image = *hero
 	var x, y = player.Image.Size()
 	player.Size = [2]int{x, y}
-	player.Position = [2]int{windowWidth * 1 / 20, windowHeight * 2 / 10}
+	player.Position = [2]int{windowWidth * 1 / 20, windowHeight * 4 / 10}
 
 	enemy.Name = "Red Gopher"
 	enemy.Actions = [4]Action{spell5, spell6, spell7, spell8}
@@ -80,9 +116,9 @@ func init() { //init function grabbing image from directory
 	enemy.Stats.currentHealth = 25
 	enemy.Stats.attack = 0
 	enemy.Stats.defense = 0
-	enemy.Image = *img
+	enemy.Image = *bandit
 	enemy.Size = [2]int{x, y}
-	enemy.Position = [2]int{windowWidth * 19 / 20, windowHeight * 2 / 10}
+	enemy.Position = [2]int{windowWidth*16/20 - enemy.Size[0], windowHeight * 4 / 10}
 
 	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
 	if err != nil {
@@ -151,12 +187,11 @@ func ActionEffects(first Entity, second Entity, spell Action) (struct {
 					first.Stats.defense = 0
 				}
 				first.Actions[i].CoolDown[1] += spell.CoolDown[0]
-				fmt.Println("cooldown increased")
 			}
 			first.Actions[i].CoolDown[1] += 1
 		}
 		if first.Actions[i].CoolDown[1] == turn {
-			if first.Actions[i].Effect == "attackBuff" && first.Stats.attack > 0 {
+			if first.Actions[i].Effect == "attackBuff" && first.Stats.attack >= 1 {
 				first.Stats.attack = 0
 				fmt.Println("attack buff wore off")
 				fmt.Println("player attack", first.Stats.attack)
@@ -169,10 +204,10 @@ func ActionEffects(first Entity, second Entity, spell Action) (struct {
 	}
 	var dead bool = false
 	if spell.Effect == "damage" {
-		second.Stats.currentHealth -= (spell.HealthModifier + first.Stats.attack - second.Stats.defense)
-		spell.CoolDown[1] += spell.CoolDown[0]
-		if first.Stats.currentHealth < 1 {
-			first.Stats.currentHealth = 0
+		if (second.Stats.currentHealth - spell.HealthModifier + first.Stats.attack - second.Stats.defense) >= 1 {
+			second.Stats.currentHealth -= (spell.HealthModifier + first.Stats.attack - second.Stats.defense)
+		} else {
+			second.Stats.currentHealth = 1
 			dead = true
 		}
 		//fmt.Println(first.Name)
@@ -323,21 +358,23 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("X: %d, Y: %d", x, y))
 
 	npc := &ebiten.DrawImageOptions{}
-	npc.ColorM.ChangeHSV(2.85, 2.00, 1.00)
-	npc.GeoM.Scale(-1.5, 1.5)
+	npc.GeoM.Scale(4.5, 4.5)
 	npc.GeoM.Translate(float64(enemy.Position[0]), float64(enemy.Position[1]))
 
 	//fmt.Println(npc.GeoM)
 
 	char := &ebiten.DrawImageOptions{}
-	char.GeoM.Scale(1.5, 1.5)
+	char.GeoM.Scale(4, 4)
 	char.GeoM.Translate(float64(player.Position[0]), float64(player.Position[1]))
 
 	b := &ebiten.DrawImageOptions{}
 	b.GeoM.Translate(float64(windowWidth)*4/20, float64(windowHeight)*25/40)
 
+	bg := &ebiten.DrawImageOptions{}
+	bg.GeoM.Scale(1.3, 1.3)
+
 	box = ebiten.NewImage(windowWidth*47/80, windowHeight*25/80)
-	box.Fill(color.RGBA{0xb0, 0xb0, 0xb0, 0x0f})
+	box.Fill(color.RGBA{0x00, 0x00, 0x00, 0x7f})
 
 	arr := &ebiten.DrawImageOptions{}
 	arr.GeoM.Translate(float64(windowWidth*(11+arrowPos[0])/40), float64(windowHeight*(56+arrowPos[1])/80))
@@ -345,17 +382,19 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	arrow.Fill(color.White)
 
 	hpEnemy := &ebiten.DrawImageOptions{}
-	hpEnemy.GeoM.Translate(float64(enemy.Position[0]-enemy.Size[0]*3/2+30), float64(enemy.Position[1]-40))
+	hpEnemy.GeoM.Translate(float64(enemy.Position[0]-enemy.Size[0]+40), float64(enemy.Position[1]-40))
 	hpPlayer := &ebiten.DrawImageOptions{}
-	hpPlayer.GeoM.Translate(float64(player.Position[0]+30), float64(player.Position[1]-40))
-	healthBarGreenP = ebiten.NewImage(300*player.Stats.currentHealth/player.Stats.maxHealth, 30)
+	hpPlayer.GeoM.Translate(float64(player.Position[0]+40), float64(player.Position[1]-40))
+	healthBarGreenP = ebiten.NewImage(300*player.Stats.currentHealth/player.Stats.maxHealth, 15)
 	healthBarGreenP.Fill(color.RGBA{0x00, 0xff, 0x00, 0xff})
 	//fmt.Println(player.Health)
-	healthBarGreenE = ebiten.NewImage(300*enemy.Stats.currentHealth/enemy.Stats.maxHealth, 30)
+	healthBarGreenE = ebiten.NewImage(300*enemy.Stats.currentHealth/enemy.Stats.maxHealth, 15)
 	healthBarGreenE.Fill(color.RGBA{0x00, 0xff, 0x00, 0xff})
 
-	healthBarRed = ebiten.NewImage(300, 30)
+	healthBarRed = ebiten.NewImage(300, 15)
 	healthBarRed.Fill(color.RGBA{0xff, 0x00, 0x00, 0xff})
+
+	screen.DrawImage(background, bg)
 
 	screen.DrawImage(healthBarRed, hpEnemy)
 	if !enemyDead {
@@ -367,8 +406,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	screen.DrawImage(box, b)
 	screen.DrawImage(arrow, arr)
-	screen.DrawImage(img, char)
-	screen.DrawImage(img, npc)
+	screen.DrawImage(hero, char)
+	screen.DrawImage(bandit, npc)
 
 	text.Draw(screen, player.Actions[0].Name, mplusNormalFont, windowWidth*12/40, windowHeight*57/80, color.White)
 	text.Draw(screen, player.Actions[1].Name, mplusNormalFont, windowWidth*(12+11)/40, windowHeight*57/80, color.White)
