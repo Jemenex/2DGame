@@ -1,10 +1,10 @@
 package main
 
 import (
-	//"bytes"
-	//_ "embed"
+	"bytes"
+	_ "embed"
 	"fmt"
-	//"image"
+	"image"
 	"image/color"
 	_ "image/png" //image functions import
 	"log"
@@ -21,7 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
-var windowWidth, windowHeight int = 1280, 960
+const windowWidth, windowHeight int = 1280, 960
 
 var spell1 = Action{"Basic Attack", 2, [2]int{0, 0}, "damage"}
 var spell2 = Action{"Heavy Attack", 4, [2]int{1, 0}, "damage"}
@@ -56,16 +56,17 @@ var background *ebiten.Image
 var hero *ebiten.Image
 var bandit *ebiten.Image
 
-/*const (
+const (
 	iconSize = 32
-	tileXNum = 25
+	iconXNum = 16
 )
 
-var (
-	iconsImage *ebiten.Image
-)*/
+//go:embed icons.png
+var iconsPng []byte
+var iconsImg *ebiten.Image
 
-var arrowPos = [2]int{0, 0}
+var arrowPos int = 0
+
 var (
 	mplusNormalFont font.Face
 	mplusBigFont    font.Face
@@ -73,16 +74,12 @@ var (
 
 func init() { //init function grabbing image from directory
 	var err error
-	/*img, _, err = ebitenutil.NewImageFromFile("gopher.png")
-	if err != nil {
-		log.Fatal(err)
-	}*/
 
-	/*img, _, err := image.Decode(bytes.NewReader(images.Tiles_png))
+	img, _, err := image.Decode(bytes.NewReader(iconsPng))
 	if err != nil {
 		log.Fatal(err)
 	}
-	iconsImage = ebiten.NewImageFromImage(img)*/
+	iconsImg = ebiten.NewImageFromImage(img)
 
 	background, _, err = ebitenutil.NewImageFromFile("background.png")
 	if err != nil {
@@ -233,6 +230,7 @@ func ActionEffects(first Entity, second Entity, spell Action) (struct {
 }
 
 type Game struct {
+	layers [][]int
 }
 
 func (g *Game) Update() error {
@@ -247,19 +245,21 @@ func (g *Game) Update() error {
 		EnemyDead = true
 	}*/
 	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
-		arrowPos[1] = 0
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
-		arrowPos[1] = 12
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
-		arrowPos[0] = 0
+		if arrowPos >= 64 {
+			arrowPos -= 64
+		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyRight) {
-		arrowPos[0] = 11
+		if arrowPos <= 384 {
+			arrowPos += 64
+		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) && playerTurn {
-		if arrowPos == [2]int{0, 0} {
+		if arrowPos == 0 {
 			fmt.Println("current turn:", turn)
 			fmt.Println("current cd:", player.Actions[0].CoolDown[1])
 
@@ -286,7 +286,7 @@ func (g *Game) Update() error {
 			} else {
 				turnText = "That spell is on COOLDOWN!"
 			}
-		} else if arrowPos == [2]int{11, 0} {
+		} else if arrowPos == 64 {
 			fmt.Println("current turn:", turn)
 			fmt.Println("current cd:", player.Actions[1].CoolDown[1])
 			if player.Actions[1].CoolDown[1] == turn {
@@ -305,7 +305,7 @@ func (g *Game) Update() error {
 			} else {
 				turnText = "That spell is on COOLDOWN!"
 			}
-		} else if arrowPos == [2]int{0, 12} {
+		} else if arrowPos == 128 {
 			fmt.Println("current turn:", turn)
 			fmt.Println("current cd:", player.Actions[2].CoolDown[1])
 			if player.Actions[2].CoolDown[1] == turn {
@@ -324,7 +324,7 @@ func (g *Game) Update() error {
 			} else {
 				turnText = "That spell is on COOLDOWN!"
 			}
-		} else if arrowPos == [2]int{11, 12} {
+		} else if arrowPos == 192 {
 			fmt.Println("current turn:", turn)
 			fmt.Println("current cd:", player.Actions[3].CoolDown[1])
 			if player.Actions[3].CoolDown[1] == turn {
@@ -343,6 +343,8 @@ func (g *Game) Update() error {
 			} else {
 				turnText = "That spell is on COOLDOWN!"
 			}
+		} else if arrowPos > 192 {
+			turnText = "No spell assigned!"
 		}
 	}
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
@@ -377,9 +379,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	box.Fill(color.RGBA{0x00, 0x00, 0x00, 0x7f})
 
 	arr := &ebiten.DrawImageOptions{}
-	arr.GeoM.Translate(float64(windowWidth*(11+arrowPos[0])/40), float64(windowHeight*(56+arrowPos[1])/80))
-	arrow = ebiten.NewImage(12, 12)
-	arrow.Fill(color.White)
+	arr.GeoM.Translate(float64(384+arrowPos), float64(832))
+	arrow = ebiten.NewImage(64, 64)
+	arrow.Fill(color.RGBA{0xf9, 0xe8, 0x2f, 0x2f})
 
 	hpEnemy := &ebiten.DrawImageOptions{}
 	hpEnemy.GeoM.Translate(float64(enemy.Position[0]-enemy.Size[0]+40), float64(enemy.Position[1]-40))
@@ -404,30 +406,66 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	if !playerDead {
 		screen.DrawImage(healthBarGreenP, hpPlayer)
 	}
-	screen.DrawImage(box, b)
-	screen.DrawImage(arrow, arr)
+	//screen.DrawImage(box, b)
 	screen.DrawImage(hero, char)
 	screen.DrawImage(bandit, npc)
 
-	text.Draw(screen, player.Actions[0].Name, mplusNormalFont, windowWidth*12/40, windowHeight*57/80, color.White)
+	/*text.Draw(screen, player.Actions[0].Name, mplusNormalFont, windowWidth*12/40, windowHeight*57/80, color.White)
 	text.Draw(screen, player.Actions[1].Name, mplusNormalFont, windowWidth*(12+11)/40, windowHeight*57/80, color.White)
 	text.Draw(screen, player.Actions[2].Name, mplusNormalFont, windowWidth*12/40, windowHeight*(57+12)/80, color.White)
-	text.Draw(screen, player.Actions[3].Name, mplusNormalFont, windowWidth*(12+11)/40, windowHeight*(57+12)/80, color.White)
+	text.Draw(screen, player.Actions[3].Name, mplusNormalFont, windowWidth*(12+11)/40, windowHeight*(57+12)/80, color.White)*/
 
 	text.Draw(screen, turnText, mplusBigFont, windowWidth*15/40, windowHeight*1/20, color.White)
+
+	const xNum = (windowWidth / 2) / iconSize
+	for _, l := range g.layers {
+		for i, t := range l {
+			op := &ebiten.DrawImageOptions{}
+
+			op.GeoM.Translate(float64((i%xNum)*(iconSize)), float64((i/xNum)*(iconSize)))
+			op.GeoM.Scale(2, 2)
+
+			sx := (t % iconXNum) * iconSize
+			sy := (t / iconXNum) * iconSize
+			screen.DrawImage(iconsImg.SubImage(image.Rect(sx, sy, sx+iconSize, sy+iconSize)).(*ebiten.Image), op)
+		}
+	}
+	screen.DrawImage(arrow, arr)
 
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return windowWidth, windowHeight //sets window size
+	return windowWidth, windowHeight
 }
 
 func main() {
+	z := 400
+	g := &Game{
+		layers: [][]int{
+			{
+				z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z,
+				z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z,
+				z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z,
+				z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z,
+				z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z,
+				z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z,
+				z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z,
+				z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z,
+				z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z,
+				z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z,
+				z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z,
+				z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z,
+				z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z,
+				z, z, z, z, z, z, 81, 48, 148, 59, 11, 11, 11, 11, z, z, z, z, z, z,
+				z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z, z,
+			},
+		},
+	}
 
 	ebiten.SetWindowSize(windowWidth, windowHeight)
 	ebiten.SetWindowTitle("2D Game")
 
-	if err := ebiten.RunGame(&Game{}); err != nil {
+	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
 }
