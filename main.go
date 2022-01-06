@@ -9,6 +9,7 @@ import (
 	_ "image/png" //image functions import
 	"log"
 	"math/rand"
+	"strconv"
 	"time"
 
 	"golang.org/x/image/font"
@@ -244,10 +245,6 @@ func (g *Game) Update() error {
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyDown) && enemy.Health[0] == 1 {
 		EnemyDead = true
 	}*/
-	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
-	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
 		if arrowPos >= 64 {
 			arrowPos -= 64
@@ -431,6 +428,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 	}
 	screen.DrawImage(arrow, arr)
+	for i := 0; i < 8; i++ {
+		text.Draw(screen, strconv.Itoa(i+1), mplusNormalFont, 388+(i*64), 854, color.White)
+	}
+
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
 
 }
 
