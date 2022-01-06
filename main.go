@@ -67,6 +67,7 @@ var iconsPng []byte
 var iconsImg *ebiten.Image
 
 var arrowPos int = 0
+var fadeAlpha uint8 = 255
 
 var (
 	mplusNormalFont font.Face
@@ -231,10 +232,12 @@ func ActionEffects(first Entity, second Entity, spell Action) (struct {
 }
 
 type Game struct {
+	count  int
 	layers [][]int
 }
 
 func (g *Game) Update() error {
+	g.count++
 	/*if inpututil.IsKeyJustPressed(ebiten.KeyUp) && player.Health[0] > 1 {
 		player.Health[0] -= 1
 	} else if inpututil.IsKeyJustPressed(ebiten.KeyUp) && player.Health[0] == 1 {
@@ -371,9 +374,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	bg := &ebiten.DrawImageOptions{}
 	bg.GeoM.Scale(1.3, 1.3)
-
-	box = ebiten.NewImage(windowWidth*47/80, windowHeight*25/80)
-	box.Fill(color.RGBA{0x00, 0x00, 0x00, 0x7f})
+	//box.Fill(color.RGBA{0x00, 0x00, 0x00, 0x7f})
 
 	arr := &ebiten.DrawImageOptions{}
 	arr.GeoM.Translate(float64(384+arrowPos), float64(832))
@@ -429,11 +430,20 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	screen.DrawImage(arrow, arr)
 	for i := 0; i < 8; i++ {
-		text.Draw(screen, strconv.Itoa(i+1), mplusNormalFont, 388+(i*64), 854, color.White)
+		text.Draw(screen, strconv.Itoa(i+1), mplusNormalFont, 428+(i*64), 890, color.White)
 	}
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
 
+	box = ebiten.NewImage(windowWidth, windowHeight)
+	box.Fill(color.RGBA{0, 0, 0, fadeAlpha})
+	screen.DrawImage(box, nil) //test for fade in from black transparency
+	//var p uint8 = 5
+	if fadeAlpha > 0 {
+		fadeAlpha -= 5
+	} else {
+
+	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
