@@ -350,6 +350,11 @@ func (g *Game) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		player.Stats.currentHealth -= 1
 	}
+	if playerDead {
+		turnText = "Battle is over " + player.Name + " has died"
+	} else if enemyDead {
+		turnText = "Battle is over " + enemy.Name + " has died"
+	}
 	return nil
 }
 
@@ -413,7 +418,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	text.Draw(screen, player.Actions[2].Name, mplusNormalFont, windowWidth*12/40, windowHeight*(57+12)/80, color.White)
 	text.Draw(screen, player.Actions[3].Name, mplusNormalFont, windowWidth*(12+11)/40, windowHeight*(57+12)/80, color.White)*/
 
-	text.Draw(screen, turnText, mplusBigFont, windowWidth*15/40, windowHeight*1/20, color.White)
+	text.Draw(screen, turnText, mplusBigFont, windowWidth/2-(text.BoundString(mplusBigFont, turnText).Dx()/2), windowHeight*1/20, color.White)
 
 	const xNum = (windowWidth / 2) / iconSize
 	for _, l := range g.layers {
@@ -439,10 +444,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	box.Fill(color.RGBA{0, 0, 0, fadeAlpha})
 	screen.DrawImage(box, nil) //test for fade in from black transparency
 	//var p uint8 = 5
-	if fadeAlpha > 0 {
-		fadeAlpha -= 5
-	} else {
-
+	if fadeAlpha >= 10 {
+		fadeAlpha -= 10
+	} else if fadeAlpha < 10 {
+		fadeAlpha = 0
 	}
 }
 
@@ -481,3 +486,12 @@ func main() {
 		log.Fatal(err)
 	}
 }
+
+/*
+END BATTLE AT 0 HP
+SETUP FADE IN FROM BLACK ANIMATION
+SETUP EXPERIENCE BAR AND LEVELS
+SETUP STATS INCREASE SCREEN AFTER BATTLE
+SETUP CONTINUOUS LOOP FADE IN -> BATTLE -> FADE OUT/FADE IN -> EXP STAT UPGRADE -> FADE OUT/FADE IN -> BATTLE LOOPS
+
+*/
