@@ -35,6 +35,8 @@ var spell8 = Action{"Block", 1, [2]int{2, 0}, "defenseBuff"}
 
 var DurationOfTime = time.Duration(3) * time.Second
 
+var FadeTime = time.Duration(2) * time.Second
+
 var player Entity
 var enemy Entity
 
@@ -63,6 +65,10 @@ var hero *ebiten.Image
 var heavyBanditPng []byte
 var bandit *ebiten.Image
 
+//go:embed HeavyBandit_Dying.png
+var heavyBanditDyingPng []byte
+var banditDying *ebiten.Image
+
 const (
 	iconSize = 32
 	iconXNum = 16
@@ -82,6 +88,7 @@ var iconsImg *ebiten.Image
 
 var arrowPos int = 0
 var fadeAlpha uint8 = 255
+var fading bool = false
 
 var (
 	mplusNormalFont font.Face
@@ -134,8 +141,16 @@ func init() { //init function grabbing image from directory
 	var x, y = player.Image.Size()
 	player.Size = [2]int{x, y}
 	player.Position = [2]int{windowWidth * 1 / 20, windowHeight * 4 / 10}
+	player.Anims.Idle = Anim{
+		100,
+		0,
+		100,
+		55,
+		7,
+	}
+	fmt.Println(player.Anims.Idle)
 
-	enemy.Name = "Red Gopher"
+	enemy.Name = "Bandit"
 	enemy.Actions = [4]Action{spell5, spell6, spell7, spell8}
 	enemy.Stats.maxHealth = 25
 	enemy.Stats.currentHealth = 25
@@ -145,6 +160,13 @@ func init() { //init function grabbing image from directory
 	var w, z = enemy.Image.Size()
 	enemy.Size = [2]int{w, z}
 	enemy.Position = [2]int{windowWidth*16/20 - enemy.Size[0], windowHeight * 4 / 10}
+	player.Anims.Idle = Anim{
+		48,
+		0,
+		48,
+		48,
+		10,
+	}
 
 	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
 	if err != nil {
@@ -171,6 +193,14 @@ func init() { //init function grabbing image from directory
 	}
 }
 
+type Anim struct {
+	frameOX     int
+	frameOY     int
+	frameWidth  int
+	frameHeight int
+	frameNum    int
+}
+
 type Action struct {
 	Name           string
 	HealthModifier int //How much it modifies health + or -
@@ -190,6 +220,36 @@ type Entity struct {
 	}
 	Actions [4]Action
 	Image   ebiten.Image
+	Anims   struct {
+		Idle struct {
+			frameOX     int
+			frameOY     int
+			frameWidth  int
+			frameHeight int
+			frameNum    int
+		}
+		Death struct {
+			frameOX     int
+			frameOY     int
+			frameWidth  int
+			frameHeight int
+			frameNum    int
+		}
+		Attack struct {
+			frameOX     int
+			frameOY     int
+			frameWidth  int
+			frameHeight int
+			frameNum    int
+		}
+		Hurt struct {
+			frameOX     int
+			frameOY     int
+			frameWidth  int
+			frameHeight int
+			frameNum    int
+		}
+	}
 }
 
 func ActionEffects(first Entity, second Entity, spell Action) (struct {
@@ -368,6 +428,11 @@ func (g *Game) Update() error {
 		if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 			player.Stats.currentHealth -= 1
 		}
+
+		if inpututil.IsKeyJustPressed(ebiten.KeyS) {
+			fading = true
+			fmt.Println(fading)
+		}
 		if playerDead {
 			turnText = "Battle is over " + player.Name + " has died"
 		} else if enemyDead {
@@ -423,8 +488,6 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	//Player and Enemy DrawImage function
 	//screen.DrawImage(hero, char)
 	screen.DrawImage(bandit, npc)
-	//Turn Text DrawImage function
-	text.Draw(screen, turnText, mplusBigFont, windowWidth/2-(text.BoundString(mplusBigFont, turnText).Dx()/2), windowHeight*1/20, color.White)
 	//Array iteration to position a tileset using subimages and positions - Used for hotbar
 	const xNum = (windowWidth / 2) / iconSize
 	for _, l := range g.layers {
@@ -450,20 +513,34 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Display Mouse Position
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f   X: %d, Y: %d", ebiten.CurrentTPS(), x, y))
 	//Fade in box drawn and alpha change
+
+	i := (g.count / 6) % player.Anims.Idle.frameNum
+	sx, sy := player.Anims.Idle.frameOX+i*player.Anims.Idle.frameWidth, player.Anims.Idle.frameOY
+	screen.DrawImage(hero.SubImage(image.Rect(sx, sy, sx+frameWidth, sy+frameHeight)).(*ebiten.Image), ap)
+
 	box = ebiten.NewImage(windowWidth, windowHeight)
 	box.Fill(color.RGBA{0, 0, 0, fadeAlpha})
 	screen.DrawImage(box, nil) //test for fade in from black transparency
 	//var p uint8 = 5
-	if fadeAlpha >= 10 {
-		fadeAlpha -= 10
-	} else if fadeAlpha < 10 {
-		fadeAlpha = 0
+	if !fading {
+		if fadeAlpha >= 10 {
+			fadeAlpha -= 10
+		} else if fadeAlpha < 10 {
+			fadeAlpha = 0
+		}
+	} else if fading {
+		if fadeAlpha <= 240 {
+			fadeAlpha += 10
+		} else if fadeAlpha > 240 {
+			fadeAlpha = 255
+			time.AfterFunc(FadeTime, func() {
+				fading = false
+			})
+		}
 	}
 
-	i := (g.count / 6) % frameNum
-	sx, sy := frameOX+i*frameWidth, frameOY
-	screen.DrawImage(hero.SubImage(image.Rect(sx, sy, sx+frameWidth, sy+frameHeight)).(*ebiten.Image), ap)
-
+	//Turn Text DrawImage function
+	text.Draw(screen, turnText, mplusBigFont, windowWidth/2-(text.BoundString(mplusBigFont, turnText).Dx()/2), windowHeight*1/20, color.White)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
