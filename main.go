@@ -74,13 +74,13 @@ const (
 	iconXNum = 16
 )
 
-const (
-	frameOX     = 100
-	frameOY     = 0
-	frameWidth  = 100
-	frameHeight = 55
-	frameNum    = 7
-)
+// const (
+// 	frameOX     = 100
+// 	frameOY     = 0
+// 	frameWidth  = 100
+// 	frameHeight = 55
+// 	frameNum    = 7
+// )
 
 //go:embed icons.png
 var iconsPng []byte
@@ -131,6 +131,12 @@ func init() { //init function grabbing image from directory
 		log.Fatal(err)
 	}
 
+	img4, _, err := image.Decode(bytes.NewReader(heroKnightPng))
+	if err != nil {
+		log.Fatal(err)
+	}
+	banditDying = ebiten.NewImageFromImage(img4)
+
 	player.Name = "Hero Knight"
 	player.Actions = [4]Action{spell1, spell2, spell3, spell4}
 	player.Stats.maxHealth = 25
@@ -148,7 +154,7 @@ func init() { //init function grabbing image from directory
 		55,
 		7,
 	}
-	fmt.Println(player.Anims.Idle)
+	fmt.Println(player.Anims.Idle.frameHeight)
 
 	enemy.Name = "Bandit"
 	enemy.Actions = [4]Action{spell5, spell6, spell7, spell8}
@@ -160,7 +166,7 @@ func init() { //init function grabbing image from directory
 	var w, z = enemy.Image.Size()
 	enemy.Size = [2]int{w, z}
 	enemy.Position = [2]int{windowWidth*16/20 - enemy.Size[0], windowHeight * 4 / 10}
-	player.Anims.Idle = Anim{
+	enemy.Anims.Idle = Anim{
 		48,
 		0,
 		48,
@@ -221,34 +227,10 @@ type Entity struct {
 	Actions [4]Action
 	Image   ebiten.Image
 	Anims   struct {
-		Idle struct {
-			frameOX     int
-			frameOY     int
-			frameWidth  int
-			frameHeight int
-			frameNum    int
-		}
-		Death struct {
-			frameOX     int
-			frameOY     int
-			frameWidth  int
-			frameHeight int
-			frameNum    int
-		}
-		Attack struct {
-			frameOX     int
-			frameOY     int
-			frameWidth  int
-			frameHeight int
-			frameNum    int
-		}
-		Hurt struct {
-			frameOX     int
-			frameOY     int
-			frameWidth  int
-			frameHeight int
-			frameNum    int
-		}
+		Idle   Anim
+		Death  Anim
+		Attack Anim
+		Hurt   Anim
 	}
 }
 
@@ -516,7 +498,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	i := (g.count / 6) % player.Anims.Idle.frameNum
 	sx, sy := player.Anims.Idle.frameOX+i*player.Anims.Idle.frameWidth, player.Anims.Idle.frameOY
-	screen.DrawImage(hero.SubImage(image.Rect(sx, sy, sx+frameWidth, sy+frameHeight)).(*ebiten.Image), ap)
+	screen.DrawImage(hero.SubImage(image.Rect(sx, sy, sx+player.Anims.Idle.frameWidth, sy+player.Anims.Idle.frameHeight)).(*ebiten.Image), ap)
 
 	box = ebiten.NewImage(windowWidth, windowHeight)
 	box.Fill(color.RGBA{0, 0, 0, fadeAlpha})
