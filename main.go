@@ -65,10 +65,6 @@ var hero *ebiten.Image
 var heavyBanditPng []byte
 var bandit *ebiten.Image
 
-//go:embed HeavyBandit_Dying.png
-var heavyBanditDyingPng []byte
-var banditDying *ebiten.Image
-
 const (
 	iconSize = 32
 	iconXNum = 16
@@ -126,17 +122,6 @@ func init() { //init function grabbing image from directory
 		log.Fatal(err)
 	}*/
 
-	bandit, _, err = ebitenutil.NewImageFromFile("bandit.png")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	img4, _, err := image.Decode(bytes.NewReader(heroKnightPng))
-	if err != nil {
-		log.Fatal(err)
-	}
-	banditDying = ebiten.NewImageFromImage(img4)
-
 	player.Name = "Hero Knight"
 	player.Actions = [4]Action{spell1, spell2, spell3, spell4}
 	player.Stats.maxHealth = 25
@@ -144,15 +129,14 @@ func init() { //init function grabbing image from directory
 	player.Stats.attack = 0
 	player.Stats.defense = 0
 	player.Image = *hero
-	var x, y = player.Image.Size()
-	player.Size = [2]int{x, y}
+	player.Size = [2]int{100, 55}
 	player.Position = [2]int{windowWidth * 1 / 20, windowHeight * 4 / 10}
 	player.Anims.Idle = Anim{
-		100,
+		0,
 		0,
 		100,
 		55,
-		7,
+		8,
 	}
 	fmt.Println(player.Anims.Idle.frameHeight)
 
@@ -163,15 +147,14 @@ func init() { //init function grabbing image from directory
 	enemy.Stats.attack = 0
 	enemy.Stats.defense = 0
 	enemy.Image = *bandit
-	var w, z = enemy.Image.Size()
-	enemy.Size = [2]int{w, z}
-	enemy.Position = [2]int{windowWidth*16/20 - enemy.Size[0], windowHeight * 4 / 10}
+	enemy.Size = [2]int{48, 48}
+	enemy.Position = [2]int{windowWidth*16/20 - enemy.Size[0]*2, windowHeight * 4 / 10}
 	enemy.Anims.Idle = Anim{
-		48,
+		192,
 		0,
 		48,
 		48,
-		10,
+		4,
 	}
 
 	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
@@ -447,7 +430,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	arrow.Fill(color.RGBA{0xf9, 0xe8, 0x2f, 0x2f})
 	//Hp Bar Draw Options - Position . Size . Fill
 	hpEnemy := &ebiten.DrawImageOptions{}
-	hpEnemy.GeoM.Translate(float64(enemy.Position[0]-enemy.Size[0]+40), float64(enemy.Position[1]-40))
+	hpEnemy.GeoM.Translate(float64(enemy.Position[0]-enemy.Size[0]), float64(enemy.Position[1]-40))
 	hpPlayer := &ebiten.DrawImageOptions{}
 	hpPlayer.GeoM.Translate(float64(player.Position[0]+40), float64(player.Position[1]-40))
 	healthBarGreenP = ebiten.NewImage(300*player.Stats.currentHealth/player.Stats.maxHealth, 15)
@@ -469,7 +452,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	//Player and Enemy DrawImage function
 	//screen.DrawImage(hero, char)
-	screen.DrawImage(bandit, npc)
+	// screen.DrawImage(bandit, npc)
+
+	j := (g.count / 12) % enemy.Anims.Idle.frameNum
+	bx, by := enemy.Anims.Idle.frameOX+j*enemy.Anims.Idle.frameWidth, enemy.Anims.Idle.frameOY
+	screen.DrawImage(bandit.SubImage(image.Rect(bx, by, bx+enemy.Anims.Idle.frameWidth, by+enemy.Anims.Idle.frameHeight)).(*ebiten.Image), npc)
+
 	//Array iteration to position a tileset using subimages and positions - Used for hotbar
 	const xNum = (windowWidth / 2) / iconSize
 	for _, l := range g.layers {
@@ -496,7 +484,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f   X: %d, Y: %d", ebiten.CurrentTPS(), x, y))
 	//Fade in box drawn and alpha change
 
-	i := (g.count / 6) % player.Anims.Idle.frameNum
+	i := (g.count / 7) % player.Anims.Idle.frameNum
 	sx, sy := player.Anims.Idle.frameOX+i*player.Anims.Idle.frameWidth, player.Anims.Idle.frameOY
 	screen.DrawImage(hero.SubImage(image.Rect(sx, sy, sx+player.Anims.Idle.frameWidth, sy+player.Anims.Idle.frameHeight)).(*ebiten.Image), ap)
 
