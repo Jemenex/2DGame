@@ -92,6 +92,9 @@ var (
 	mplusBigFont    font.Face
 )
 
+var animationPlayer string = "idle"
+var animationEnemy string = "idle"
+
 func init() { //init function grabbing image from directory
 
 	var err error
@@ -140,6 +143,27 @@ func init() { //init function grabbing image from directory
 		55,
 		8,
 	}
+	player.Anims.Attack = Anim{
+		800,
+		55,
+		100,
+		55,
+		6,
+	}
+	player.Anims.Hurt = Anim{
+		500,
+		220,
+		100,
+		55,
+		3,
+	}
+	player.Anims.Death = Anim{
+		800,
+		220,
+		100,
+		55,
+		8,
+	}
 	fmt.Println(player.Anims.Idle.frameHeight)
 
 	enemy.Name = "Bandit"
@@ -158,7 +182,29 @@ func init() { //init function grabbing image from directory
 		48,
 		4,
 	}
+	enemy.Anims.Attack = Anim{
+		0,
+		96,
+		48,
+		48,
+		8,
+	}
+	enemy.Anims.Hurt = Anim{
+		0,
+		192,
+		48,
+		48,
+		3,
+	}
+	enemy.Anims.Death = Anim{
+		192,
+		192,
+		48,
+		48,
+		1,
+	}
 
+	fmt.Println(player.Anims.Idle.frameNum)
 	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
 	if err != nil {
 		log.Fatal(err)
