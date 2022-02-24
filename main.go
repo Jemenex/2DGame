@@ -9,6 +9,7 @@ import (
 	_ "image/png" //image functions import
 	"log"
 	"math/rand"
+
 	"strconv"
 	"time"
 
@@ -92,6 +93,7 @@ var (
 )
 
 func init() { //init function grabbing image from directory
+
 	var err error
 
 	img, _, err := image.Decode(bytes.NewReader(iconsPng))
