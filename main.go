@@ -92,11 +92,10 @@ var (
 	mplusBigFont    font.Face
 )
 
-var animationPlayer string = "idle"
-var animationEnemy string = "idle"
+var currentAnimationP Anim
+var currentAnimationE Anim
 
 func init() { //init function grabbing image from directory
-
 	var err error
 
 	img, _, err := image.Decode(bytes.NewReader(iconsPng))
@@ -203,7 +202,9 @@ func init() { //init function grabbing image from directory
 		48,
 		1,
 	}
-
+	currentAnimationP = player.Anims.Idle
+	currentAnimationE = enemy.Anims.Idle
+	fmt.Println(currentAnimationP)
 	fmt.Println(player.Anims.Idle.frameNum)
 	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
 	if err != nil {
@@ -530,12 +531,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	//FPS shown top
 	// Display Mouse Position
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f   X: %d, Y: %d", ebiten.CurrentTPS(), x, y))
-	//Fade in box drawn and alpha change
 
 	i := (g.count / 7) % player.Anims.Idle.frameNum
 	sx, sy := player.Anims.Idle.frameOX+i*player.Anims.Idle.frameWidth, player.Anims.Idle.frameOY
 	screen.DrawImage(hero.SubImage(image.Rect(sx, sy, sx+player.Anims.Idle.frameWidth, sy+player.Anims.Idle.frameHeight)).(*ebiten.Image), ap)
 
+	//Fade in box drawn and alpha change
 	box = ebiten.NewImage(windowWidth, windowHeight)
 	box.Fill(color.RGBA{0, 0, 0, fadeAlpha})
 	screen.DrawImage(box, nil) //test for fade in from black transparency
@@ -603,5 +604,4 @@ SETUP FADE IN FROM BLACK ANIMATION
 SETUP EXPERIENCE BAR AND LEVELS
 SETUP STATS INCREASE SCREEN AFTER BATTLE
 SETUP CONTINUOUS LOOP FADE IN -> BATTLE -> FADE OUT/FADE IN -> EXP STAT UPGRADE -> FADE OUT/FADE IN -> BATTLE LOOPS
-
 */
