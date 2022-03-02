@@ -141,6 +141,8 @@ func init() { //init function grabbing image from directory
 		100,
 		55,
 		8,
+		7,
+		1000,
 	}
 	player.Anims.Attack = Anim{
 		800,
@@ -148,6 +150,35 @@ func init() { //init function grabbing image from directory
 		100,
 		55,
 		6,
+		7,
+		1000,
+	}
+	player.Anims.Attack2 = Anim{
+		400,
+		110,
+		100,
+		55,
+		6,
+		4,
+		1000,
+	}
+	player.Anims.Attack3 = Anim{
+		100,
+		165,
+		100,
+		55,
+		6,
+		7,
+		1000,
+	}
+	player.Anims.Run = Anim{
+		800,
+		0,
+		100,
+		55,
+		10,
+		7,
+		1000,
 	}
 	player.Anims.Hurt = Anim{
 		500,
@@ -155,6 +186,8 @@ func init() { //init function grabbing image from directory
 		100,
 		55,
 		3,
+		7,
+		1000,
 	}
 	player.Anims.Death = Anim{
 		800,
@@ -162,6 +195,8 @@ func init() { //init function grabbing image from directory
 		100,
 		55,
 		8,
+		7,
+		1000,
 	}
 	fmt.Println(player.Anims.Idle.frameHeight)
 
@@ -180,6 +215,8 @@ func init() { //init function grabbing image from directory
 		48,
 		48,
 		4,
+		12,
+		384,
 	}
 	enemy.Anims.Attack = Anim{
 		0,
@@ -187,6 +224,8 @@ func init() { //init function grabbing image from directory
 		48,
 		48,
 		8,
+		12,
+		384,
 	}
 	enemy.Anims.Hurt = Anim{
 		0,
@@ -194,6 +233,26 @@ func init() { //init function grabbing image from directory
 		48,
 		48,
 		3,
+		12,
+		384,
+	}
+	enemy.Anims.Hurt = Anim{
+		0,
+		192,
+		48,
+		48,
+		3,
+		12,
+		384,
+	}
+	enemy.Anims.Hurt = Anim{
+		0,
+		192,
+		48,
+		48,
+		3,
+		12,
+		384,
 	}
 	enemy.Anims.Death = Anim{
 		192,
@@ -201,6 +260,8 @@ func init() { //init function grabbing image from directory
 		48,
 		48,
 		1,
+		12,
+		384,
 	}
 	currentAnimationP = player.Anims.Idle
 	currentAnimationE = enemy.Anims.Idle
@@ -237,6 +298,8 @@ type Anim struct {
 	frameWidth  int
 	frameHeight int
 	frameNum    int
+	framesPer   int
+	maxWidth    int
 }
 
 type Action struct {
@@ -259,10 +322,13 @@ type Entity struct {
 	Actions [4]Action
 	Image   ebiten.Image
 	Anims   struct {
-		Idle   Anim
-		Death  Anim
-		Attack Anim
-		Hurt   Anim
+		Idle    Anim
+		Death   Anim
+		Attack  Anim
+		Attack2 Anim
+		Attack3 Anim
+		Run     Anim
+		Hurt    Anim
 	}
 }
 
@@ -447,6 +513,9 @@ func (g *Game) Update() error {
 			fading = true
 			fmt.Println(fading)
 		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyA) {
+			currentAnimationP = player.Anims.Run
+		}
 		if playerDead {
 			turnText = "Battle is over " + player.Name + " has died"
 		} else if enemyDead {
@@ -503,9 +572,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	//screen.DrawImage(hero, char)
 	// screen.DrawImage(bandit, npc)
 
-	j := (g.count / 12) % enemy.Anims.Idle.frameNum
-	bx, by := enemy.Anims.Idle.frameOX+j*enemy.Anims.Idle.frameWidth, enemy.Anims.Idle.frameOY
-	screen.DrawImage(bandit.SubImage(image.Rect(bx, by, bx+enemy.Anims.Idle.frameWidth, by+enemy.Anims.Idle.frameHeight)).(*ebiten.Image), npc)
+	j := (g.count / currentAnimationE.framesPer) % currentAnimationE.frameNum
+	bx := (currentAnimationE.frameOX + j*currentAnimationE.frameWidth) % currentAnimationE.maxWidth
+	by := currentAnimationE.frameOY + ((currentAnimationE.frameOX+j*currentAnimationE.frameWidth)/currentAnimationE.maxWidth)*currentAnimationE.frameHeight
+	screen.DrawImage(bandit.SubImage(image.Rect(bx, by, bx+currentAnimationE.frameWidth, by+currentAnimationE.frameHeight)).(*ebiten.Image), npc)
 
 	//Array iteration to position a tileset using subimages and positions - Used for hotbar
 	const xNum = (windowWidth / 2) / iconSize
@@ -532,8 +602,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Display Mouse Position
 	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f   X: %d, Y: %d", ebiten.CurrentTPS(), x, y))
 
-	i := (g.count / 7) % player.Anims.Idle.frameNum
-	sx, sy := player.Anims.Idle.frameOX+i*player.Anims.Idle.frameWidth, player.Anims.Idle.frameOY
+	// i := (g.count / 7) % player.Anims.Idle.frameNum
+	// sx, sy := player.Anims.Idle.frameOX+i*player.Anims.Idle.frameWidth, player.Anims.Idle.frameOY
+	// screen.DrawImage(hero.SubImage(image.Rect(sx, sy, sx+player.Anims.Idle.frameWidth, sy+player.Anims.Idle.frameHeight)).(*ebiten.Image), ap)
+
+	i := (g.count / currentAnimationP.framesPer) % currentAnimationP.frameNum
+	sx := (currentAnimationP.frameOX + i*currentAnimationP.frameWidth) % currentAnimationP.maxWidth
+	sy := currentAnimationP.frameOY + ((currentAnimationP.frameOX+i*currentAnimationP.frameWidth)/currentAnimationP.maxWidth)*currentAnimationP.frameHeight
 	screen.DrawImage(hero.SubImage(image.Rect(sx, sy, sx+player.Anims.Idle.frameWidth, sy+player.Anims.Idle.frameHeight)).(*ebiten.Image), ap)
 
 	//Fade in box drawn and alpha change
