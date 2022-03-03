@@ -91,7 +91,8 @@ var (
 	mplusNormalFont font.Face
 	mplusBigFont    font.Face
 )
-
+var startingPosP [2]int
+var startingPosE [2]int
 var currentAnimationP Anim
 var currentAnimationE Anim
 
@@ -265,6 +266,8 @@ func init() { //init function grabbing image from directory
 	}
 	currentAnimationP = player.Anims.Idle
 	currentAnimationE = enemy.Anims.Idle
+	startingPosP = [2]int{windowWidth * 1 / 20, windowHeight * 4 / 10}
+	startingPosE = [2]int{windowWidth*16/20 - enemy.Size[0]*2, windowHeight * 4 / 10}
 	fmt.Println(currentAnimationP)
 	fmt.Println(player.Anims.Idle.frameNum)
 	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
@@ -424,9 +427,11 @@ func (g *Game) Update() error {
 				if player.Actions[0].CoolDown[1] == turn {
 					playerTurn = false
 					turn += 1
+					currentAnimationP = player.Anims.Attack
 					player.Stats, enemy.Stats, player.Actions, enemyDead = ActionEffects(player, enemy, player.Actions[0])
 					turnText = "Enemy's Turn"
 					time.AfterFunc(DurationOfTime, func() {
+						currentAnimationP = player.Anims.Idle
 						var x int
 						for {
 							x = rand.Intn(4)
@@ -434,7 +439,6 @@ func (g *Game) Update() error {
 								break
 							}
 						}
-
 						enemy.Stats, player.Stats, enemy.Actions, playerDead = ActionEffects(enemy, player, enemy.Actions[x])
 						turnText = "Your Turn"
 						playerTurn = true
@@ -515,6 +519,9 @@ func (g *Game) Update() error {
 		}
 		if inpututil.IsKeyJustPressed(ebiten.KeyA) {
 			currentAnimationP = player.Anims.Run
+		}
+		if inpututil.IsKeyJustPressed(ebiten.KeyD) {
+			player.Position[0] += 10
 		}
 		if playerDead {
 			turnText = "Battle is over " + player.Name + " has died"
