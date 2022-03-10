@@ -408,6 +408,7 @@ type Game struct {
 
 func (g *Game) Update() error {
 	g.count++
+
 	if gameState == "Battle" { //Battle State Controls
 		if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
 			if arrowPos >= 64 {
@@ -427,6 +428,7 @@ func (g *Game) Update() error {
 				if player.Actions[0].CoolDown[1] == turn {
 					playerTurn = false
 					turn += 1
+					g.count = 0
 					currentAnimationP = player.Anims.Attack
 					player.Stats, enemy.Stats, player.Actions, enemyDead = ActionEffects(player, enemy, player.Actions[0])
 					turnText = "Enemy's Turn"
