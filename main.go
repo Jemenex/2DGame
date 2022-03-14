@@ -689,3 +689,26 @@ SETUP EXPERIENCE BAR AND LEVELS
 SETUP STATS INCREASE SCREEN AFTER BATTLE
 SETUP CONTINUOUS LOOP FADE IN -> BATTLE -> FADE OUT/FADE IN -> EXP STAT UPGRADE -> FADE OUT/FADE IN -> BATTLE LOOPS
 */
+
+/*
+start turn
+fade in animation "box"
+idle animations
+choose spell
+g.count reset to start animations clean
+< move player position / walk to enemy
+< change player animation to walking
+< arrive at enemy position
+< change player animation to attacking
+< flip player model
+< change player animation to walking
+< move player position / walk back to original spot
+< change player animation to idle
+< start enemy turn
+-change idle animation to attack animation
+-goroutine set to 3 second delay for enemy turn
+-change attack aniamtion to idle
+set turn to player
+loop
+
+*/
