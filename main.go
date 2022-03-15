@@ -95,6 +95,12 @@ var startingPosP [2]int
 var startingPosE [2]int
 var currentAnimationP Anim
 var currentAnimationE Anim
+var playerIdlePos [2]int
+var enemyIdlePos [2]int
+var playerAttackPos [2]int
+var enemyAttackPos [2]int
+var playerDestination [2]int
+var enemyDestination [2]int
 
 func init() { //init function grabbing image from directory
 	var err error
@@ -199,7 +205,7 @@ func init() { //init function grabbing image from directory
 		7,
 		1000,
 	}
-	fmt.Println(player.Anims.Idle.frameHeight)
+	//fmt.Println(player.Anims.Idle.frameHeight)
 
 	enemy.Name = "Bandit"
 	enemy.Actions = [4]Action{spell5, spell6, spell7, spell8}
@@ -264,12 +270,18 @@ func init() { //init function grabbing image from directory
 		12,
 		384,
 	}
+	enemyIdlePos = enemy.Position
+	enemyAttackPos = [2]int{player.Position[0] + enemy.Size[0]*3/2, player.Position[1]}
+	enemyDestination = enemyIdlePos
+	playerIdlePos = player.Position
+	playerAttackPos = [2]int{enemy.Position[0] - player.Size[0]*3/2, enemy.Position[1]}
+	playerDestination = playerIdlePos
 	currentAnimationP = player.Anims.Idle
 	currentAnimationE = enemy.Anims.Idle
 	startingPosP = [2]int{windowWidth * 1 / 20, windowHeight * 4 / 10}
 	startingPosE = [2]int{windowWidth*16/20 - enemy.Size[0]*2, windowHeight * 4 / 10}
-	fmt.Println(currentAnimationP)
-	fmt.Println(player.Anims.Idle.frameNum)
+	// fmt.Println(currentAnimationP)
+	// fmt.Println(player.Anims.Idle.frameNum)
 	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
 	if err != nil {
 		log.Fatal(err)
@@ -408,6 +420,23 @@ type Game struct {
 
 func (g *Game) Update() error {
 	g.count++
+	if player.Position[0] != playerDestination[0] {
+		if player.Position[0] < playerDestination[0] {
+			player.Position[0]++
+		}
+		if player.Position[0] > playerDestination[0] {
+			player.Position[0]--
+		}
+	}
+
+	if enemy.Position[0] != enemyDestination[0] {
+		if enemy.Position[0] > enemyDestination[0] {
+			enemy.Position[0]++
+		}
+		if enemy.Position[0] < enemyDestination[0] {
+			enemy.Position[0]--
+		}
+	}
 
 	if gameState == "Battle" { //Battle State Controls
 		if inpututil.IsKeyJustPressed(ebiten.KeyLeft) {
@@ -430,10 +459,12 @@ func (g *Game) Update() error {
 					turn += 1
 					g.count = 0
 					currentAnimationP = player.Anims.Attack
+					playerDestination = playerAttackPos
 					player.Stats, enemy.Stats, player.Actions, enemyDead = ActionEffects(player, enemy, player.Actions[0])
 					turnText = "Enemy's Turn"
 					time.AfterFunc(DurationOfTime, func() {
 						currentAnimationP = player.Anims.Idle
+						playerDestination = playerIdlePos
 						var x int
 						for {
 							x = rand.Intn(4)
